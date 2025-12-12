@@ -1,25 +1,19 @@
-export const config = {
-  runtime: "edge",
-};
+import { promises as fs } from "fs";
+import path from "path";
 
-let lastCommand = "";
+const file = path.join(process.cwd(), "latest.json");
 
-export default async (req) => {
-  if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+
+  try {
+    const { sender, command } = req.body;
+
+    const data = JSON.stringify({ sender, command });
+    await fs.writeFile(file, data);
+
+    res.status(200).send("OK");
+  } catch (err) {
+    res.status(500).send("ERROR");
   }
-
-  const body = await req.json();
-  lastCommand = JSON.stringify(body);
-
-  // send to discord webhook
-  await fetch("https://discord.com/api/webhooks/1448871462113902713/Ka85kRmhJmxpg92b4YOJuNUdymt9f_ewdcRS2ARn-9zN6QB_rFbJLloDluerO7RtPWdW", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      content: `**Command Received:** ${body.command}\n**Sender:** ${body.sender}`
-    }),
-  });
-
-  return new Response(JSON.stringify({ ok: true }));
-};
+}
